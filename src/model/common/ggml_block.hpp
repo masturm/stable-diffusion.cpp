@@ -326,6 +326,7 @@ __STATIC_INLINE__ bool support_get_rows(ggml_type wtype) {
         case GGML_TYPE_Q5_0:
         case GGML_TYPE_Q4_1:
         case GGML_TYPE_Q4_0:
+        case GGML_TYPE_Q4_0_64:
         case GGML_TYPE_Q2_K:
         case GGML_TYPE_Q3_K:
         case GGML_TYPE_Q4_K:
