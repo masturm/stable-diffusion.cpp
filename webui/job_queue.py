@@ -122,7 +122,7 @@ class JobQueue:
 
         args = self._build_args(job.workflow, job.prompt, job.negative_prompt, output_path, init_img)
         success = await self._run_cli(args, job, job.workflow.env)
-        if success:
+        if success and output_path not in job.outputs:
             job.outputs.append(output_path)
 
     async def _run_sequence(self, job: Job):
@@ -167,7 +167,8 @@ class JobQueue:
                 job.error = f"sequence step {i + 1} failed"
                 return
 
-            job.outputs.append(output_path)
+            if output_path not in job.outputs:
+                job.outputs.append(output_path)
             prev_video = output_path
 
         # Concatenate all steps into one video
