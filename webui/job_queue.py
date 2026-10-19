@@ -121,6 +121,7 @@ class JobQueue:
         init_img = await self._resolve_init_image(job.workflow.generation, job, output_dir)
 
         args = self._build_args(job.workflow, job.prompt, job.negative_prompt, output_path, init_img)
+        self._add_preview_path(args, job)
         success = await self._run_cli(args, job, job.workflow.env)
         if success and output_path not in job.outputs:
             job.outputs.append(output_path)
@@ -151,10 +152,17 @@ class JobQueue:
 
             output_path = str(output_dir / f"{filename}_step{i + 1}.{ext}")
 
+            # Skip generation if requested and file exists
+            if step.skip and Path(output_path).is_file():
+                job.outputs.append(output_path)
+                prev_video = output_path
+                continue
+
             # Resolve init image for this step
             init_img = await self._resolve_init_image(wf.generation, job, output_dir, step_index=i)
 
             args = self._build_args(wf, step.prompt, step.negative_prompt, output_path, init_img)
+            self._add_preview_path(args, job)
 
             if i > 0 and prev_video:
                 last_frame = str(output_dir / f"{filename}_frame_{i}.png")
@@ -234,6 +242,10 @@ class JobQueue:
             args.append("--unload-high-noise-model")
         if flags.backend:
             args += ["--backend", flags.backend]
+        if flags.preview:
+            args += ["--preview", flags.preview]
+        if flags.preview_interval:
+            args += ["--preview-interval", str(flags.preview_interval)]
 
         return args
 
@@ -297,6 +309,11 @@ class JobQueue:
         phase = detect_phase(line)
         if phase:
             job.progress.phase = phase
+
+    def _add_preview_path(self, args: list[str], job: Job):
+        if job.workflow.flags.preview:
+            preview_path = str(OUTPUT_DIR / f"{job.id}_preview.png")
+            args += ["--preview-path", preview_path]
 
     async def _resolve_init_image(self, gen, job: Job, output_dir: Path, step_index: int = 0) -> str | None:
         """Resolve init image from init_image path or by extracting last frame from init_video.

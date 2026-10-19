@@ -2,6 +2,7 @@ const API = '';
 let currentJobId = null;
 let loadedWorkflowName = null;
 let ws = null;
+let previewInterval = null;
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -116,6 +117,8 @@ function populateForm(wf) {
         setCheck('flag-vae-temporal', wf.flags.vae_temporal_tiling);
         setCheck('flag-unload-hn', wf.flags.unload_high_noise_model);
         setVal('flag-backend', wf.flags.backend ?? '');
+        setVal('flag-preview', wf.flags.preview ?? '');
+        setVal('flag-preview-interval', wf.flags.preview_interval ?? 5);
     }
     if (wf.env) {
         document.getElementById('env-json').value = JSON.stringify(wf.env, null, 2);
@@ -128,7 +131,7 @@ function populateForm(wf) {
         const container = document.getElementById('seq-steps');
         container.innerHTML = '';
         for (const step of wf.sequence_steps) {
-            addSeqStep(step.prompt, step.negative_prompt);
+            addSeqStep(step.prompt, step.negative_prompt, step.skip);
         }
     } else {
         document.querySelector('input[name="gen-mode"][value="single"]').checked = true;
@@ -176,6 +179,7 @@ function collectWorkflow() {
     let env = {};
     try { env = JSON.parse(document.getElementById('env-json').value || '{}'); } catch(e) {}
     const mode = document.querySelector('input[name="gen-mode"]:checked').value;
+    const seqSteps = collectSeqSteps();
     const wf = {
         name: 'untitled',
         models: {
@@ -212,11 +216,13 @@ function collectWorkflow() {
             vae_temporal_tiling: chk('flag-vae-temporal'),
             unload_high_noise_model: chk('flag-unload-hn'),
             backend: val('flag-backend') || null,
+            preview: val('flag-preview') || null,
+            preview_interval: num('flag-preview-interval') || null,
         },
         env,
         prompt: val('prompt'),
         negative_prompt: val('neg-prompt'),
-        sequence_steps: mode === 'sequence' ? collectSeqSteps() : null,
+        sequence_steps: seqSteps.length > 0 ? seqSteps : null,
     };
     return wf;
 }
@@ -287,7 +293,7 @@ function setupSeqSteps() {
     addSeqStep();
 }
 
-function addSeqStep(prompt = '', negPrompt = '') {
+function addSeqStep(prompt = '', negPrompt = '', skip = false) {
     const container = document.getElementById('seq-steps');
     const idx = container.children.length + 1;
     const div = document.createElement('div');
@@ -295,6 +301,7 @@ function addSeqStep(prompt = '', negPrompt = '') {
     div.innerHTML = `
         <div class="step-num">Step ${idx}</div>
         <button class="remove-step" title="Remove">&times;</button>
+        <label class="check seq-skip"><input type="checkbox" class="seq-skip-cb" ${skip ? 'checked' : ''}> skip (use existing)</label>
         <div class="field"><label>Prompt</label><textarea class="seq-prompt" rows="2"></textarea></div>
         <div class="field"><label>Negative Prompt</label><textarea class="seq-neg-prompt" rows="1"></textarea></div>
     `;
@@ -320,6 +327,7 @@ function collectSeqSteps() {
             prompt: div.querySelector('.seq-prompt').value.trim(),
             negative_prompt: div.querySelector('.seq-neg-prompt').value.trim(),
             overrides: {},
+            skip: div.querySelector('.seq-skip-cb').checked,
         });
     });
     return steps;
@@ -352,6 +360,7 @@ function setupGenerate() {
         document.getElementById('btn-cancel').style.display = '';
         document.getElementById('log-area').textContent = '';
         document.getElementById('preview-area').innerHTML = '<p class="muted">Generating...</p>';
+        startLivePreview(job.id);
     });
 }
 
@@ -373,6 +382,7 @@ function connectWS(jobId) {
         if (msg.event === 'finished') {
             document.getElementById('btn-generate').disabled = false;
             document.getElementById('btn-cancel').style.display = 'none';
+            stopLivePreview();
             loadPreview(jobId);
         }
     };
@@ -400,6 +410,22 @@ function updateProgress(msg) {
         log.textContent += msg.log + '\n';
         log.scrollTop = log.scrollHeight;
     }
+}
+
+function startLivePreview(jobId) {
+    stopLivePreview();
+    const previewEl = document.getElementById('live-preview');
+    const imgEl = document.getElementById('live-preview-img');
+    previewEl.style.display = '';
+    imgEl.src = `${API}/api/jobs/${jobId}/preview?ts=${Date.now()}`;
+    previewInterval = setInterval(() => {
+        imgEl.src = `${API}/api/jobs/${jobId}/preview?ts=${Date.now()}`;
+    }, 3000);
+}
+
+function stopLivePreview() {
+    if (previewInterval) { clearInterval(previewInterval); previewInterval = null; }
+    document.getElementById('live-preview').style.display = 'none';
 }
 
 async function loadPreview(jobId) {

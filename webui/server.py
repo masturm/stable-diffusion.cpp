@@ -126,6 +126,17 @@ async def get_job_output(job_id: str, file_index: int):
     return FileResponse(str(path))
 
 
+# --- Preview ---
+
+@app.get("/api/jobs/{job_id}/preview")
+async def get_job_preview(job_id: str):
+    preview_path = OUTPUT_DIR / f"{job_id}_preview.png"
+    if not preview_path.is_file():
+        raise HTTPException(404, "no preview yet")
+    return FileResponse(str(preview_path), media_type="image/png",
+                        headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
+
 # --- History ---
 
 @app.get("/api/history")

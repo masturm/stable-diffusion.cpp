@@ -207,6 +207,11 @@ main { padding: 1rem; }
     font-weight: 600;
     margin-bottom: 0.3rem;
 }
+.seq-step .seq-skip {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+}
 .seq-step .remove-step {
     position: absolute;
     top: 0.5rem;

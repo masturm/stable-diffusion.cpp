@@ -129,6 +129,21 @@
                             <label class="check"><input type="checkbox" id="flag-vae-temporal"> VAE Temporal Tiling</label>
                             <label class="check"><input type="checkbox" id="flag-unload-hn"> Unload High Noise</label>
                         </div>
+                        <div class="grid-2">
+                            <div class="field">
+                                <label>Preview Mode</label>
+                                <select id="flag-preview">
+                                    <option value="">none</option>
+                                    <option value="tae">tae (fast)</option>
+                                    <option value="vae">vae (quality)</option>
+                                    <option value="proj">proj</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Preview Interval</label>
+                                <input type="number" id="flag-preview-interval" value="5" min="1">
+                            </div>
+                        </div>
                         <div class="field">
                             <label>Backend</label>
                             <input type="text" id="flag-backend" value="diffusion=ROCm2">
@@ -179,6 +194,9 @@
 
                     <section class="section">
                         <h2>Preview</h2>
+                        <div id="live-preview" style="display:none">
+                            <img id="live-preview-img" src="" style="max-width:100%;border-radius:6px">
+                        </div>
                         <div id="preview-area">
                             <p class="muted">No output yet</p>
                         </div>
