@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SD-CPP Video Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>SD-CPP Video Generator</h1>
+        <nav>
+            <button class="tab-btn active" data-tab="generate">Generate</button>
+            <button class="tab-btn" data-tab="history">History</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Generate Tab -->
+        <div id="tab-generate" class="tab-content active">
+            <div class="layout">
+                <aside class="panel form-panel">
+                    <!-- Workflow -->
+                    <section class="section">
+                        <h2>Workflow</h2>
+                        <div class="row">
+                            <select id="workflow-select">
+                                <option value="">-- Load workflow --</option>
+                            </select>
+                            <button id="btn-update-wf" class="btn-sm" style="display:none">Update</button>
+                            <button id="btn-save-wf" class="btn-sm">Save As</button>
+                        </div>
+                    </section>
+
+                    <!-- Models -->
+                    <section class="section">
+                        <h2>Models</h2>
+                        <div class="field">
+                            <label>Diffusion Model</label>
+                            <select id="model-diffusion"><option value="">-- select --</option></select>
+                        </div>
+                        <div class="field">
+                            <label>High Noise Model</label>
+                            <select id="model-high-noise"><option value="">-- select --</option></select>
+                        </div>
+                        <div class="field">
+                            <label>VAE</label>
+                            <select id="model-vae"><option value="">-- select --</option></select>
+                        </div>
+                        <div class="field">
+                            <label>T5-XXL</label>
+                            <select id="model-t5xxl"><option value="">-- select --</option></select>
+                        </div>
+                        <div class="field">
+                            <label>CLIP-L</label>
+                            <select id="model-clip-l"><option value="">-- select --</option></select>
+                        </div>
+                    </section>
+
+                    <!-- Generation Parameters -->
+                    <section class="section">
+                        <h2>Generation</h2>
+                        <div class="grid-2">
+                            <div class="field"><label>Width</label><input type="number" id="gen-width" value="1280"></div>
+                            <div class="field"><label>Height</label><input type="number" id="gen-height" value="720"></div>
+                            <div class="field"><label>Frames</label><input type="number" id="gen-frames" value="121"></div>
+                            <div class="field"><label>FPS</label><input type="number" id="gen-fps" value="24"></div>
+                            <div class="field"><label>Steps</label><input type="number" id="gen-steps" value="30"></div>
+                            <div class="field"><label>CFG Scale</label><input type="number" id="gen-cfg" value="6.0" step="0.1"></div>
+                            <div class="field"><label>High Noise Steps</label><input type="number" id="gen-hn-steps" value=""></div>
+                            <div class="field"><label>HN CFG Scale</label><input type="number" id="gen-hn-cfg" value="" step="0.1"></div>
+                            <div class="field"><label>Sampler</label><input type="text" id="gen-sampler" value="euler_a"></div>
+                            <div class="field"><label>Scheduler</label><input type="text" id="gen-scheduler" value="default"></div>
+                            <div class="field"><label>Seed (-1=random)</label><input type="number" id="gen-seed" value="-1"></div>
+                            <div class="field"><label>Flow Shift</label><input type="number" id="gen-flow-shift" value="" step="0.1"></div>
+                        </div>
+                        <div class="field">
+                            <label>Output Format</label>
+                            <select id="gen-format">
+                                <option value="webm">webm</option>
+                                <option value="avi">avi</option>
+                                <option value="webp">webp (animated)</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Output Filename</label>
+                            <input type="text" id="gen-output-filename" value="output" placeholder="base name (sequences get _step1, _step2...)">
+                        </div>
+                        <div class="field">
+                            <label>Output Directory</label>
+                            <input type="text" id="gen-output-dir" value="">
+                        </div>
+                        <label class="check"><input type="checkbox" id="gen-concat" checked> Concatenate sequence steps into one video</label>
+                        <button id="btn-combine" class="btn-sm" style="margin-top:0.5rem">Combine existing steps now</button>
+                    </section>
+
+                    <!-- Input Image/Video -->
+                    <section class="section">
+                        <h2>Input (I2V)</h2>
+                        <div class="field">
+                            <label>Init Image (path or upload)</label>
+                            <div class="row">
+                                <input type="text" id="input-init-image" placeholder="/path/to/image.png">
+                                <label class="btn-sm" style="cursor:pointer">Upload<input type="file" id="upload-init-image" accept="image/*" style="display:none"></label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Init Video (last frame used as init image)</label>
+                            <div class="row">
+                                <input type="text" id="input-init-video" placeholder="/path/to/video.mp4">
+                                <label class="btn-sm" style="cursor:pointer">Upload<input type="file" id="upload-init-video" accept="video/*" style="display:none"></label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>End Image (for FLF2V models)</label>
+                            <div class="row">
+                                <input type="text" id="input-end-image" placeholder="/path/to/end.png">
+                                <label class="btn-sm" style="cursor:pointer">Upload<input type="file" id="upload-end-image" accept="image/*" style="display:none"></label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Flags -->
+                    <section class="section">
+                        <h2>Flags & Backend</h2>
+                        <div class="grid-2">
+                            <label class="check"><input type="checkbox" id="flag-fa" checked> Diffusion FA</label>
+                            <label class="check"><input type="checkbox" id="flag-vae-tiling"> VAE Tiling</label>
+                            <label class="check"><input type="checkbox" id="flag-vae-temporal"> VAE Temporal Tiling</label>
+                            <label class="check"><input type="checkbox" id="flag-unload-hn"> Unload High Noise</label>
+                        </div>
+                        <div class="field">
+                            <label>Backend</label>
+                            <input type="text" id="flag-backend" value="diffusion=ROCm2">
+                        </div>
+                        <div class="field">
+                            <label>Environment (JSON)</label>
+                            <textarea id="env-json" rows="2">{"GGML_CUDA_DISABLE_GRAPHS": "1"}</textarea>
+                        </div>
+                    </section>
+
+                    <!-- Prompts -->
+                    <section class="section">
+                        <h2>Prompt</h2>
+                        <div class="mode-toggle">
+                            <label class="check"><input type="radio" name="gen-mode" value="single" checked> Single</label>
+                            <label class="check"><input type="radio" name="gen-mode" value="sequence"> Sequence</label>
+                        </div>
+                        <div id="single-prompt">
+                            <div class="field"><label>Prompt</label><textarea id="prompt" rows="3"></textarea></div>
+                            <div class="field"><label>Negative Prompt</label><textarea id="neg-prompt" rows="2"></textarea></div>
+                        </div>
+                        <div id="sequence-prompt" style="display:none">
+                            <div id="seq-steps"></div>
+                            <button id="btn-add-step" class="btn-sm">+ Add Step</button>
+                        </div>
+                    </section>
+
+                    <!-- Actions -->
+                    <section class="section actions">
+                        <button id="btn-generate" class="btn-primary">Generate</button>
+                        <button id="btn-cancel" class="btn-danger" style="display:none">Cancel</button>
+                    </section>
+                </aside>
+
+                <!-- Right panel: output -->
+                <aside class="panel output-panel">
+                    <section class="section">
+                        <h2>Progress</h2>
+                        <div id="job-status" class="status-badge">idle</div>
+                        <div class="progress-wrap">
+                            <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+                            <span id="progress-text"></span>
+                        </div>
+                        <div id="seq-progress" style="display:none">
+                            <span id="seq-text"></span>
+                        </div>
+                    </section>
+
+                    <section class="section">
+                        <h2>Preview</h2>
+                        <div id="preview-area">
+                            <p class="muted">No output yet</p>
+                        </div>
+                    </section>
+
+                    <section class="section">
+                        <h2>Log</h2>
+                        <pre id="log-area" class="log"></pre>
+                    </section>
+                </aside>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="tab-history" class="tab-content">
+            <h2>Job History</h2>
+            <div id="history-list" class="history-grid"></div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
